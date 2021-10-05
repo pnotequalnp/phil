@@ -1,0 +1,50 @@
+cabal-version: 2.4
+name:          phil
+version:       0.1.0.0
+license:       ISC
+license-file:  LICENSE
+author:        Kevin Mullins
+maintainer:    kevin@pnotequalnp.com
+copyright:     Kevin Mullins 2021
+category:      Web
+
+executable phil
+  hs-source-dirs:     app
+  main-is:            Main.hs
+  default-language:   Haskell2010
+  other-modules:
+    Phil.Commands
+    Phil.Settings
+
+  ghc-options:
+    -Wall -fplugin=Polysemy.Plugin -Wno-missed-extra-shared-lib
+
+  default-extensions:
+    BlockArguments
+    ConstraintKinds
+    DataKinds
+    DeriveGeneric
+    DerivingStrategies
+    FlexibleContexts
+    GADTs
+    ImportQualifiedPost
+    LambdaCase
+    OverloadedLabels
+    OverloadedStrings
+    TupleSections
+    TypeApplications
+    TypeOperators
+
+  build-depends:
+    , base
+    , calamity
+    , calamity-commands
+    , containers
+    , data-default
+    , di
+    , di-polysemy
+    , generic-lens
+    , lens
+    , polysemy
+    , polysemy-plugin
+    , text
