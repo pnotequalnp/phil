@@ -3,6 +3,7 @@ module Phil.Settings where
 import Calamity (Guild, HasID (..), Message, Snowflake)
 import CalamityCommands (ParsePrefix (..))
 import Control.Lens
+import Data.Either (fromRight)
 import Data.Map (Map)
 import Data.Text.Lazy (Text)
 import Data.Text.Lazy qualified as T
@@ -10,8 +11,7 @@ import Data.Tuple (swap)
 import GHC.Generics (Generic)
 import Polysemy (Member, Sem, interpret)
 import Polysemy.AtomicState (AtomicState, atomicGet, atomicState)
-import Data.Either (fromRight)
-import Polysemy.Error (runError, note)
+import Polysemy.Error (note, runError)
 
 data Settings = Settings
   { prefix :: Map (Snowflake Guild) Text,

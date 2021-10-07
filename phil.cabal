@@ -14,11 +14,21 @@ executable phil
   default-language:   Haskell2010
   other-modules:
     Phil.Commands
+    Phil.Database
+    Phil.Database.Eff
+    Phil.Database.GlobalSettings
+    Phil.Database.GuildSettings
+    Phil.Database.Sqlite
     Phil.Server
     Phil.Settings
+    Phil.Settings.Global.Eff
+    Phil.Settings.Guild.Eff
+    Phil.Settings.Guild.Prefix
 
   ghc-options:
-    -Wall -fplugin=Polysemy.Plugin -Wno-missed-extra-shared-lib
+    -Wall -Werror=incomplete-patterns -Wno-missed-extra-shared-lib
+    -fmax-relevant-binds=0 -fno-show-valid-hole-fits -threaded
+    -fplugin=Polysemy.Plugin
 
   default-extensions:
     BlockArguments
@@ -26,14 +36,22 @@ executable phil
     DataKinds
     DeriveGeneric
     DerivingStrategies
+    EmptyCase
     FlexibleContexts
+    FlexibleInstances
     GADTs
+    GeneralizedNewtypeDeriving
     ImportQualifiedPost
     LambdaCase
+    MultiParamTypeClasses
     OverloadedLabels
     OverloadedStrings
+    PolyKinds
+    ScopedTypeVariables
+    StandaloneDeriving
     TupleSections
     TypeApplications
+    TypeFamilies
     TypeOperators
     ViewPatterns
 
@@ -43,13 +61,18 @@ executable phil
     , calamity-commands
     , containers
     , data-default
+    , data-flags
     , di
     , di-polysemy
     , generic-lens
     , lens
+    , monad-logger
+    , persistent
+    , persistent-sqlite
     , polysemy
     , polysemy-plugin
     , servant
     , servant-polysemy
     , servant-server
     , text
+    , unboxing-vector
