@@ -21,9 +21,9 @@ prefixCommands = do
   _ <- command @'[Text] "set" \ctx newPrefix -> do
     res <- runError do
       guild <- ctx ^. #guild & note "not in guild"
-      guard (T.length newPrefix < 3) & note "too long"
       member <- ctx ^. #member & note "not a guild member"
       isGuildAdmin member >>= insist "permission denied"
+      guard (T.length newPrefix < 3) & note "too long"
       setGuildPrefix guild newPrefix
     let msg = either ("Error: " <>) (((ctx ^. #prefix) <> " -> ") <>) res
     _ <- reply (ctx ^. #message) msg
