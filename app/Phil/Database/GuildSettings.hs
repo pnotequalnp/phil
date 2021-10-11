@@ -1,28 +1,30 @@
 module Phil.Database.GuildSettings where
 
-import Calamity (Snowflake, fromSnowflake, getID, HasID)
+import Calamity (HasID (..))
 import Calamity qualified as C
 import Control.Lens
 import Data.Generics.Labels ()
-import Data.IORef (newIORef)
-import Data.Map (Map)
-import Data.Map qualified as M
 import Data.Text.Lazy (Text)
-import Database.Persist ((=.))
+import Database.Esqueleto.Experimental qualified as E
+import Database.Persist (entityKey, (=.))
 import Database.Persist qualified as DB
-import Phil.Database (EntityField (GuildPrefix), Guild (Guild), Unique (SnowflakeGuild))
+import Phil.Database
+  ( EntityField (..),
+    Guild (Guild),
+    Key (..),
+    Reminder (Reminder),
+    Unique (SnowflakeGuild, SnowflakeUser),
+    User (User),
+  )
 import Phil.Database.Eff (Persist, transact)
 import Phil.Settings.Global.Eff (GlobalSettings, getPrefix)
-import Phil.Settings.Guild.Eff (GuildSettings (..), getGuildPrefix, setGuildPrefix, unsetGuildPrefix)
-import Polysemy (Embed, Members, Sem, embed, interpret, reinterpret2)
-import Polysemy.AtomicState (AtomicState, atomicGets, atomicModify, runAtomicStateIORef)
+import Phil.Settings.Guild.Eff (GuildSettings (..))
+import Polysemy (Members, Sem, interpret)
+import qualified Data.IntMap as IM
 
-persistGuildSettings ::
-  Members '[Persist, GlobalSettings] r =>
-  Sem (GuildSettings ': r) a ->
-  Sem r a
+persistGuildSettings :: Members '[Persist, GlobalSettings] r => Sem (GuildSettings ': r) a -> Sem r a
 persistGuildSettings = interpret \case
-  GetGuildPrefix (fromSnowflake @C.Guild . getID -> guild) ->
+  GetGuildPrefix (getID -> guild) ->
     transact (DB.getBy $ SnowflakeGuild guild) >>= \case
       Just (view #guildPrefix . DB.entityVal -> prefix) -> pure prefix
       Nothing -> do
@@ -31,31 +33,33 @@ persistGuildSettings = interpret \case
         pure prefix
   SetGuildPrefix guild prefix -> setGuild guild prefix
   UnsetGuildPrefix guild -> getPrefix >>= setGuild guild
+  AddUserReminder (getID -> guild) (getID -> user) freq msg -> do
+    guildKey <-
+      (transact . DB.getBy) (SnowflakeGuild guild) >>= \case
+        Just entity -> pure . entityKey $ entity
+        Nothing -> getPrefix >>= transact . DB.insert . Guild guild
+    userKey <-
+      (transact . DB.getBy) (SnowflakeUser user) >>= \case
+        Just entity -> pure . entityKey $ entity
+        Nothing -> transact . DB.insert $ User user False
+    let reminder = Reminder userKey guildKey msg freq
+    ReminderKey key <- transact $ DB.insert reminder
+    pure (fromEnum key, reminder)
+  GetUserReminders (getID -> guild) (getID -> user) -> do
+    reminderEntities <- transact . E.select $ do
+      (r E.:& g E.:& u) <- E.from $ E.table @Reminder
+        `E.innerJoin` E.table @Guild `E.on` (\(r E.:& g) -> r E.^. ReminderGuild E.==. g E.^. GuildId)
+        `E.innerJoin` E.table @User `E.on` (\(r E.:& _ E.:& u) -> r E.^. ReminderUser E.==. u E.^. UserId)
+      E.where_ $ g E.^. GuildSnowflake E.==. E.val guild
+      E.where_ $ u E.^. UserSnowflake E.==. E.val user
+      pure r
+    let reminders = reminderEntities <&> \(DB.Entity (ReminderKey key) reminder) -> (fromEnum key, reminder)
+    pure $ IM.fromList reminders
+  RemoveUserReminder _ _ (ReminderKey . toEnum -> key) ->
+    transact $ DB.delete key
   where
     setGuild :: (Members '[Persist, GlobalSettings] r, HasID C.Guild guild) => guild -> Text -> Sem r Text
-    setGuild (fromSnowflake @C.Guild . getID -> guild) prefix =
+    setGuild (getID -> guild) prefix =
       transact $
         DB.upsert (Guild guild prefix) [GuildPrefix =. prefix]
           <&> view #guildPrefix . DB.entityVal
-
-type Cache = Map (Snowflake C.Guild) Text
-
--- | Assumes the underlying storage does not get changed by other actors.
-aggressivelyCachedGuilSettings ::
-  Members '[Embed IO] r => Sem (GuildSettings ': r) a -> Sem (AtomicState Cache ': GuildSettings ': r) a
-aggressivelyCachedGuilSettings = reinterpret2 \case
-  GetGuildPrefix (getID -> guild) -> atomicGets (view $ at guild) >>= maybe (getGuildPrefix guild) pure
-  SetGuildPrefix (getID -> guild) prefix -> do
-    prefix' <- setGuildPrefix guild prefix
-    atomicModify $ at guild ?~ prefix'
-    pure prefix'
-  UnsetGuildPrefix (getID -> guild) -> do
-    prefix <- unsetGuildPrefix guild
-    atomicModify $ at guild ?~ prefix
-    pure prefix
-
-aggressivelyCacheInMemoryGuildSettings ::
-  Members '[Embed IO] r => Sem (GuildSettings ': r) a -> Sem (GuildSettings ': r) a
-aggressivelyCacheInMemoryGuildSettings x = do
-  cache <- embed $ newIORef M.empty
-  runAtomicStateIORef cache $ aggressivelyCachedGuilSettings x

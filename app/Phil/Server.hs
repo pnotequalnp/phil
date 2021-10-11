@@ -15,7 +15,6 @@ type PrefixAPI =
     :<|> Get '[JSON] Text
     :<|> ReqBody '[JSON] Text :> Post '[JSON] Text
 
--- TODO: authentication
 prefixServer :: Members '[GuildSettings, GlobalSettings, Error ServerError] r => ServerT PrefixAPI (Sem r)
 prefixServer = getGuild :<|> setGuild :<|> getDefault :<|> setDefault
   where

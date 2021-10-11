@@ -6,6 +6,8 @@ module Phil.Database
   ( EntityField (..),
     GlobalSettings (globalSettingsPrefix),
     Guild (..),
+    Key (..),
+    Reminder (..),
     User (..),
     Unique (SnowflakeUser, SnowflakeGuild),
     globalSettings,
@@ -13,18 +15,19 @@ module Phil.Database
   )
 where
 
+import Calamity qualified as C
 import Data.Default (Default (..))
 import Data.Text.Lazy (Text)
-import Data.Word (Word64)
-import Database.Persist (EntityField, Unique)
+import Database.Persist (EntityField, Key, Unique)
 import Database.Persist.TH
 import GHC.Generics (Generic)
+import Phil.Database.Orphans ()
 
 share
   [mkPersist sqlSettings, mkMigrate "migrateAll"]
   [persistLowerCase|
 Guild
-    snowflake Word64
+    snowflake (C.Snowflake C.Guild)
     prefix Text
     SnowflakeGuild snowflake
     deriving Show Generic
@@ -36,9 +39,17 @@ GlobalSettings
     deriving Show Generic
 
 User
-    snowflake Word64
+    snowflake (C.Snowflake C.User)
     globalAdmin Bool
     SnowflakeUser snowflake
+    deriving Show Generic
+
+Reminder
+    user UserId
+    guild GuildId
+    message Text
+    frequency Int
+    deriving Show Generic Ord Eq
 |]
 
 instance Default GlobalSettings where

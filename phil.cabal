@@ -14,6 +14,7 @@ executable phil
   default-language:   Haskell2010
   other-modules:
     Phil.Commands
+    Phil.Commands.Reminders
     Phil.Commands.GlobalSettings
     Phil.Commands.Prefix
     Phil.Commands.Util
@@ -21,12 +22,19 @@ executable phil
     Phil.Database.Eff
     Phil.Database.GlobalSettings
     Phil.Database.GuildSettings
+    Phil.Database.GuildSettings.Cache
+    Phil.Database.GuildSettings.GuildCache
+    Phil.Database.Orphans
     Phil.Database.Sqlite
+    Phil.Events
+    Phil.Events.MessageCreate
+    Phil.Events.Reminders
     Phil.Server
     Phil.Settings
     Phil.Settings.Global.Eff
     Phil.Settings.Guild.Eff
     Phil.Settings.Guild.Prefix
+    Polysemy.Random.IO
 
   ghc-options:
     -Wall -Werror=incomplete-patterns -Wno-missed-extra-shared-lib
@@ -67,6 +75,7 @@ executable phil
     , data-flags
     , di
     , di-polysemy
+    , esqueleto
     , generic-lens
     , lens
     , monad-logger
@@ -74,6 +83,8 @@ executable phil
     , persistent-sqlite
     , polysemy
     , polysemy-plugin
+    , polysemy-zoo
+    , random
     , servant
     , servant-polysemy
     , servant-server

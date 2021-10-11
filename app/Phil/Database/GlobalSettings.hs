@@ -1,6 +1,6 @@
 module Phil.Database.GlobalSettings where
 
-import Calamity (Snowflake (..), User, getID)
+import Calamity (getID)
 import Control.Lens
 import Data.Generics.Labels ()
 import Data.Maybe (fromMaybe)
@@ -24,6 +24,6 @@ persistGlobalSettings initialSettings = interpret \case
     oldSettings <- transact $ updateGlobalSettings initialSettings [GlobalSettingsPrefix =. prefix]
     pure $ oldSettings ^. #globalSettingsPrefix
   Eff.ResetAll -> transact $ setGlobalSettings initialSettings
-  Eff.IsGlobalAdmin (SnowflakeUser . fromSnowflake @User . getID -> snowflake) ->
+  Eff.IsGlobalAdmin (SnowflakeUser . getID -> snowflake) ->
     transact $
       DB.getBy snowflake <&> maybe False (userGlobalAdmin . DB.entityVal)

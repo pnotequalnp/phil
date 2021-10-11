@@ -2,12 +2,13 @@ module Phil.Commands where
 
 import Calamity (Message, SetupEff)
 import Calamity.Cache.Eff (CacheEff)
-import Calamity.Commands (addCommands, group, helpCommand)
+import Calamity.Commands (addCommands, group, helpCommand, hide)
 import Calamity.Commands.Context (FullContext)
 import Calamity.Metrics.Eff (MetricEff)
 import Calamity.Types.LogEff (LogEff)
 import CalamityCommands (ConstructContext, ParsePrefix)
 import Control.Monad
+import Phil.Commands.Reminders (reminders)
 import Phil.Commands.GlobalSettings (globalSettingsCommands)
 import Phil.Commands.Prefix (prefixCommands)
 import Phil.Settings.Global.Eff (GlobalSettings)
@@ -31,4 +32,5 @@ registerCommands ::
 registerCommands = void $ addCommands do
   _ <- helpCommand
   group "prefix" prefixCommands
-  group "globalSettings" globalSettingsCommands
+  reminders
+  hide $ group "globalSettings" globalSettingsCommands
