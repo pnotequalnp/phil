@@ -1,4 +1,4 @@
-cabal-version: 2.4
+cabal-version: 3.0
 name:          phil
 version:       0.1.0.0
 license:       ISC
@@ -8,38 +8,11 @@ maintainer:    kevin@pnotequalnp.com
 copyright:     Kevin Mullins 2021
 category:      Web
 
-executable phil
-  hs-source-dirs:     app
-  main-is:            Main.hs
+common base
   default-language:   Haskell2010
-  other-modules:
-    Phil.Commands
-    Phil.Commands.Reminders
-    Phil.Commands.GlobalSettings
-    Phil.Commands.Prefix
-    Phil.Commands.Util
-    Phil.Database
-    Phil.Database.Eff
-    Phil.Database.GlobalSettings
-    Phil.Database.GuildSettings
-    Phil.Database.GuildSettings.Cache
-    Phil.Database.GuildSettings.GuildCache
-    Phil.Database.Orphans
-    Phil.Database.Sqlite
-    Phil.Events
-    Phil.Events.MessageCreate
-    Phil.Events.Reminders
-    Phil.Server
-    Phil.Settings
-    Phil.Settings.Global.Eff
-    Phil.Settings.Guild.Eff
-    Phil.Settings.Guild.Prefix
-    Polysemy.Random.IO
-
   ghc-options:
     -Wall -Werror=incomplete-patterns -Wno-missed-extra-shared-lib
-    -fmax-relevant-binds=0 -fno-show-valid-hole-fits -threaded
-    -fplugin=Polysemy.Plugin
+    -fmax-relevant-binds=0 -fno-show-valid-hole-fits
 
   default-extensions:
     BlockArguments
@@ -68,13 +41,60 @@ executable phil
 
   build-depends:
     , base
+    , text
+
+executable phil
+  import:         base
+  hs-source-dirs: app
+  main-is:        Phil.hs
+  ghc-options:    -threaded -fplugin=Polysemy.Plugin
+  build-depends:
+    , calamity
+    , data-default
+    , data-flags
+    , di
+    , di-polysemy
+    , generic-lens
+    , lens
+    , persistent
+    , phil
+    , polysemy
+    , polysemy-plugin
+    , servant-polysemy
+
+library
+  import:          base
+  hs-source-dirs:  src
+  ghc-options:     -fplugin=Polysemy.Plugin
+  exposed-modules:
+    Phil.Commands
+    Phil.Commands.GlobalSettings
+    Phil.Commands.Prefix
+    Phil.Commands.Reminders
+    Phil.Commands.Util
+    Phil.Database
+    Phil.Database.Eff
+    Phil.Database.GlobalSettings
+    Phil.Database.GuildSettings
+    Phil.Database.GuildSettings.Cache
+    Phil.Database.GuildSettings.GuildCache
+    Phil.Database.Orphans
+    Phil.Database.Sqlite
+    Phil.Events
+    Phil.Events.MessageCreate
+    Phil.Events.Reminders
+    Phil.Server
+    Phil.Settings
+    Phil.Settings.Global.Eff
+    Phil.Settings.Guild.Eff
+    Phil.Settings.Guild.Prefix
+
+  build-depends:
     , calamity
     , calamity-commands
     , containers
     , data-default
     , data-flags
-    , di
-    , di-polysemy
     , esqueleto
     , generic-lens
     , lens
@@ -84,9 +104,17 @@ executable phil
     , polysemy
     , polysemy-plugin
     , polysemy-zoo
-    , random
     , servant
-    , servant-polysemy
     , servant-server
-    , text
     , unboxing-vector
+
+library polysemy-random-io
+  import:          base
+  hs-source-dirs:  src
+  exposed-modules: Polysemy.Random.IO
+  ghc-options:     -fplugin=Polysemy.Plugin
+  build-depends:
+    , polysemy
+    , polysemy-plugin
+    , polysemy-zoo
+    , random
