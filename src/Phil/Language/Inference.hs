@@ -25,7 +25,7 @@ instance At Env where
   at x f (TypeEnv m) = TypeEnv <$> at x f m
 
 data TypeError
-  = UnboundVariable
+  = UnboundVariable Name
   | UnificationFailure PType PType
   | InfiniteType TVar PType
   deriving stock (Show)
@@ -83,7 +83,7 @@ runInference env = runOutputList . sequentialNames . runReader env . infer
 
 infer :: Members '[Reader Env, Names, Output PConstraint, Error TypeError] r => PExpr -> Sem r PType
 infer = \case
-  EVar x -> asks (^. at x) >>= note UnboundVariable
+  EVar x -> asks (^. at x) >>= note (UnboundVariable x)
   EApp f x -> do
     t_f <- infer f
     t_x <- infer x
