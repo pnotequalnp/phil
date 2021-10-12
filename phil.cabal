@@ -18,6 +18,7 @@ common base
     BlockArguments
     ConstraintKinds
     DataKinds
+    DeriveAnyClass
     DeriveGeneric
     DerivingStrategies
     EmptyCase
@@ -112,7 +113,10 @@ library phil-plus-plus
   import:          base
   visibility:      public
   hs-source-dirs:  src
-  exposed-modules: Phil.Language
+  exposed-modules:
+    Phil.Language
+    Phil.Language.Inference
+    Phil.Language.Inference.Names
   ghc-options:     -fplugin=Polysemy.Plugin
   build-depends:
     , containers
