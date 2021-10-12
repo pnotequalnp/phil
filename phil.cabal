@@ -108,6 +108,18 @@ library
     , servant-server
     , unboxing-vector
 
+library phil-plus-plus
+  import:          base
+  visibility:      public
+  hs-source-dirs:  src
+  exposed-modules: Phil.Language
+  ghc-options:     -fplugin=Polysemy.Plugin
+  build-depends:
+    , containers
+    , lens
+    , polysemy
+    , polysemy-plugin
+
 library polysemy-random-io
   import:          base
   hs-source-dirs:  src
