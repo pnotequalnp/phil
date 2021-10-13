@@ -5,7 +5,7 @@ module Phil.Language.Inference.Names where
 import Control.Monad
 import Data.Function
 import Data.Text (Text, pack)
-import Phil.Language (Name)
+import Phil.Language.Syntax (Name)
 import Polysemy (Sem, makeSem, reinterpret)
 import Polysemy.State (evalState, get, modify)
 

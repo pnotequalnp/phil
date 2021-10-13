@@ -121,11 +121,14 @@ library phil-plus-plus
   build-tool-depends:
     , alex:alex
     , happy:happy
+
   build-depends:
+    , array
     , containers
     , lens
     , polysemy
     , polysemy-plugin
+    , prettyprinter
 
 library polysemy-random-io
   import:          base

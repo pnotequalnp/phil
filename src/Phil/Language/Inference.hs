@@ -3,14 +3,17 @@ module Phil.Language.Inference where
 import Control.Lens
 import Data.Map (Map)
 import Data.Map qualified as M
+import Data.Maybe (fromMaybe)
 import Data.Set (Set)
 import Data.Set qualified as S
-import Phil.Language (Name, PExpr (..), PLit (..), PType (..), TVar (..), TyCon (..))
-import Phil.Language.Inference.Names (Names, freshName, sequentialNames)
-import Polysemy (Member, Members, Sem, run)
-import Polysemy.Error (Error, note, runError, throw)
+import Phil.Language.Inference.Names
+import Phil.Language.Syntax
+import Polysemy (Member, Members, Sem)
+import Polysemy.Error (Error, note, throw)
 import Polysemy.Output (Output, output, runOutputList)
 import Polysemy.Reader (Reader, asks, local, runReader)
+import Polysemy.State (execState, get, put)
+import Prettyprinter (Pretty (..), squotes, (<+>))
 
 newtype Env = TypeEnv (Map Name PType)
   deriving stock (Show)
@@ -28,7 +31,17 @@ data TypeError
   = UnboundVariable Name
   | UnificationFailure PType PType
   | InfiniteType TVar PType
+  | Redefinition Name
   deriving stock (Show)
+
+instance Pretty TypeError where
+  pretty = \case
+    UnboundVariable name -> "Unbound variable" <+> squotes (pretty name)
+    UnificationFailure a b ->
+      "Cannot match type" <+> squotes (pretty a) <+> "with type" <+> squotes (pretty b)
+    InfiniteType var a ->
+      "Cannot construct infinite type" <+> squotes (pretty var <+> "~" <+> pretty a)
+    Redefinition name -> "Multiple definitions of" <+> squotes (pretty name)
 
 data PConstraint = PType :~: PType
 
@@ -68,13 +81,32 @@ instance Substitutable PConstraint where
   apply s (x :~: y) = apply s x :~: apply s y
   ftv (x :~: y) = ftv x <> ftv y
 
+type Module = Map Name (PExpr, PType)
+
 -- Type inference
 
-inferExpr :: Env -> PExpr -> Either TypeError PType
-inferExpr env expr = run $ runError do
+inferExpr :: Member (Error TypeError) r => Env -> PExpr -> Sem r PType
+inferExpr env expr = do
   (constraints, t) <- runInference env expr
   subst <- solve mempty constraints
   pure $ apply subst t
+
+inferModule :: Member (Error TypeError) r => [(Name, PExpr)] -> Sem r Module
+inferModule decls = do
+  (constraints, types) <-
+    decls
+      & sequentialNames . runOutputList . execState mempty . traverse \(name, expr) -> do
+        env <- get
+        env ^. at name & \case
+          Nothing -> pure ()
+          Just _ -> throw $ Redefinition name
+        t_expr <- runReader env $ infer expr
+        put $ env & at name ?~ t_expr
+        pure ()
+  subst <- solve mempty constraints
+  let types' = apply subst types
+  pure . M.fromList $ decls <&> \(name, expr) ->
+    (name, (expr, fromMaybe (error "inference died") $ types' ^. at name))
 
 -- Constraint generation
 
@@ -83,7 +115,7 @@ runInference env = runOutputList . sequentialNames . runReader env . infer
 
 infer :: Members '[Reader Env, Names, Output PConstraint, Error TypeError] r => PExpr -> Sem r PType
 infer = \case
-  EVar x -> asks (^. at x) >>= note (UnboundVariable x)
+  EVar x -> asks (^. at x) >>= note (UnboundVariable x) >>= instantiate
   EApp f x -> do
     t_f <- infer f
     t_x <- infer x
@@ -110,6 +142,14 @@ generalize = \case
     env <- asks ftv
     let vars = S.toList $ ftv t `S.difference` env
     pure $ TForall vars t
+
+instantiate :: Member Names r => PType -> Sem r PType
+instantiate = \case
+  TForall vars a -> do
+    vars' <- traverse (fmap (TVar . TV) . const freshName) vars
+    let subst = Subst . M.fromList $ zip vars vars'
+    pure $ apply subst a
+  a -> pure a
 
 -- Constraint solving
 
