@@ -59,7 +59,7 @@ executable phil
     , generic-lens
     , lens
     , persistent
-    , phil
+    , phil:{phil,polysemy-random-io}
     , polysemy
     , polysemy-plugin
     , servant-polysemy
