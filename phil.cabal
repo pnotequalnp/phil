@@ -22,6 +22,7 @@ common base
     DeriveGeneric
     DerivingStrategies
     EmptyCase
+    EmptyDataDeriving
     FlexibleContexts
     FlexibleInstances
     GADTs
@@ -113,11 +114,17 @@ library phil-plus-plus
   import:          base
   visibility:      public
   hs-source-dirs:  src
+  ghc-options:     -fplugin=Polysemy.Plugin
   exposed-modules:
     Phil.Language
     Phil.Language.Inference
     Phil.Language.Inference.Names
-  ghc-options:     -fplugin=Polysemy.Plugin
+    Phil.Language.Interpreter
+    Phil.Language.Lexer
+    Phil.Language.Parser
+    Phil.Language.Repl
+    Phil.Language.Syntax
+
   build-tool-depends:
     , alex:alex
     , happy:happy
@@ -133,10 +140,20 @@ library phil-plus-plus
 library polysemy-random-io
   import:          base
   hs-source-dirs:  src
-  exposed-modules: Polysemy.Random.IO
   ghc-options:     -fplugin=Polysemy.Plugin
+  exposed-modules: Polysemy.Random.IO
   build-depends:
     , polysemy
     , polysemy-plugin
     , polysemy-zoo
     , random
+
+executable repl
+  import:         base
+  hs-source-dirs: app
+  main-is:        Repl.hs
+  ghc-options:    -fplugin=Polysemy.Plugin
+  build-depends:
+    , phil:phil-plus-plus
+    , polysemy
+    , polysemy-plugin
