@@ -118,6 +118,9 @@ library phil-plus-plus
     Phil.Language.Inference
     Phil.Language.Inference.Names
   ghc-options:     -fplugin=Polysemy.Plugin
+  build-tool-depends:
+    , alex:alex
+    , happy:happy
   build-depends:
     , containers
     , lens
