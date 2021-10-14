@@ -9,9 +9,10 @@ module Phil.Database
     Key (..),
     Reminder (..),
     User (..),
-    Unique (SnowflakeUser, SnowflakeGuild),
     globalSettings,
+    guildflake,
     migrateAll,
+    userflake,
   )
 where
 
@@ -22,14 +23,13 @@ import Database.Persist (EntityField, Key, Unique)
 import Database.Persist.TH
 import GHC.Generics (Generic)
 import Phil.Database.Orphans ()
+import Control.Lens
 
 share
   [mkPersist sqlSettings, mkMigrate "migrateAll"]
   [persistLowerCase|
 Guild
-    snowflake (C.Snowflake C.Guild)
     prefix Text
-    SnowflakeGuild snowflake
     deriving Show Generic
 
 GlobalSettings
@@ -39,9 +39,7 @@ GlobalSettings
     deriving Show Generic
 
 User
-    snowflake (C.Snowflake C.User)
     globalAdmin Bool
-    SnowflakeUser snowflake
     deriving Show Generic
 
 Reminder
@@ -57,3 +55,11 @@ instance Default GlobalSettings where
 
 globalSettings :: Unique GlobalSettings
 globalSettings = Sentinel 0
+
+guildflake :: Iso' (C.Snowflake C.Guild) (Key Guild)
+guildflake = iso (GuildKey . fromIntegral . C.fromSnowflake)
+  (C.Snowflake . fromIntegral . \(GuildKey key) -> key)
+
+userflake :: Iso' (C.Snowflake C.User) (Key User)
+userflake = iso (UserKey . fromIntegral . C.fromSnowflake)
+  (C.Snowflake . fromIntegral . \(UserKey key) -> key)

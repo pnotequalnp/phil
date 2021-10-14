@@ -5,6 +5,7 @@ import Calamity qualified as C
 import Calamity.Cache.InMemory (runCacheInMemory)
 import Calamity.Commands.Context (useFullContext)
 import Calamity.Metrics.Noop (runMetricsNoop)
+import Control.Lens
 import Control.Monad
 import Data.Default (def)
 import Data.Flags (allFlags)
@@ -18,7 +19,7 @@ import Database.Persist.Sql qualified as DB
 import Di qualified
 import DiPolysemy (info, runDiToIO)
 import Phil.Commands (registerCommands)
-import Phil.Database (EntityField (UserGlobalAdmin), Unique (SnowflakeUser), User (..), migrateAll)
+import Phil.Database (EntityField (UserGlobalAdmin), User (..), migrateAll, userflake)
 import Phil.Database.Eff (transact)
 import Phil.Database.GlobalSettings (persistGlobalSettings)
 import Phil.Database.GuildSettings (persistGuildSettings)
@@ -41,6 +42,7 @@ main = do
   dbFile <- T.pack <$> getEnv "PHIL_DATABASE"
   dbConnections <- read <$> getEnv "PHIL_DB_CONNECTIONS"
   adminId <- Snowflake @C.User . read <$> getEnv "PHIL_ADMIN"
+  let adminKey = adminId ^. userflake
 
   err <- Di.new $ \di ->
     runFinal
@@ -61,10 +63,10 @@ main = do
         info @Text "Preparing database"
         transact do
           DB.runMigration migrateAll
-          DB.getBy (SnowflakeUser adminId) >>= \case
-            Nothing -> void . DB.insert $ User {userSnowflake = adminId, userGlobalAdmin = True}
-            Just DB.Entity {DB.entityVal = User {userGlobalAdmin = True}} -> pure ()
-            Just (DB.entityKey -> adminKey) -> DB.update adminKey [UserGlobalAdmin =. True]
+          DB.get adminKey >>= \case
+            Nothing -> void . DB.insert $ User {userGlobalAdmin = True}
+            Just user | userGlobalAdmin user -> pure ()
+            Just _ -> DB.update adminKey [UserGlobalAdmin =. True]
 
         info @Text "Starting web server"
         _serverThread <- async do

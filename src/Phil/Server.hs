@@ -11,7 +11,7 @@ import Servant
 
 type PrefixAPI =
   Capture "guild_id" Word64 :> Get '[JSON] Text
-    :<|> Capture "guild_id" Word64 :> ReqBody '[JSON] Text :> Post '[JSON] Text
+    :<|> Capture "guild_id" Word64 :> ReqBody '[JSON] Text :> Post '[JSON] ()
     :<|> Get '[JSON] Text
     :<|> ReqBody '[JSON] Text :> Post '[JSON] Text
 

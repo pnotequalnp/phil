@@ -3,6 +3,7 @@ module Phil.Database.GuildSettings.Cache where
 import Calamity (Snowflake, getID)
 import Calamity qualified as C
 import Control.Lens
+import Control.Monad
 import Data.Generics.Labels ()
 import Data.IORef (newIORef)
 import Data.IntMap (IntMap)
@@ -21,7 +22,7 @@ aggressivelyCacheGuildSettings = reinterpret2 \case
   GetGuildPrefix (getID -> guild) ->
     atomicGets (^. #prefix . at guild) >>= maybe (getGuildPrefix guild >>= setCachePrefix guild) pure
   SetGuildPrefix (getID -> guild) prefix ->
-    setGuildPrefix guild prefix >>= setCachePrefix guild
+    void $ setGuildPrefix guild prefix *> setCachePrefix guild prefix
   UnsetGuildPrefix (getID -> guild) ->
     unsetGuildPrefix guild >>= setCachePrefix guild
   AddUserReminder (getID -> guild) (getID -> user) freq msg -> do

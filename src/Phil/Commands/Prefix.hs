@@ -25,6 +25,7 @@ prefixCommands = do
       isGuildAdmin member >>= insist "permission denied"
       guard (T.length newPrefix < 3) & note "too long"
       setGuildPrefix guild newPrefix
+      pure newPrefix
     let msg = either ("Error: " <>) (((ctx ^. #prefix) <> " -> ") <>) res
     _ <- reply (ctx ^. #message) msg
     pure ()
